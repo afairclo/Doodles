@@ -1,0 +1,1 @@
+Script that can be run as a scheduled task to pick lunch. See documentation on Ps-Slack for setup information and then plug in your values.
