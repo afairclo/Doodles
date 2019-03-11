@@ -9,40 +9,24 @@ Import-Module PSSlack
 $slackuri = ""
 $channel = ""
 
-# Sushi Wednesday
-If ($(Get-Date).DayOfWeek -eq "Wednesday") {
-    $pick = $places | ? Venue -like "*Fuji*"
-    $picked = $true
+# Convert history dates to DateTime
+foreach ($entry in $history) {
+    $entry.Date = [Datetime]$entry.Date
     }
 
 # Limit to be equal to or less than your total venues
-$lastPicks = $history | ? Date -gt $(Get-Date).AddDays(-12) | Select -Last 10
+$lastPicks = $history | ? Date -gt $(Get-Date).AddDays(-12)
 
-# Exclusion list
-$candidates = $places | ? Venue -notlike "*Fuji*"
+$candidates = $places  | ? {$lastPicks.Genre -notcontains $_.Genre} | ? {$lastPicks.Venue -notcontains $_.Venue}
 
-# Pick loop
-While ($picked -eq $false) {
+$pick = $candidates | Get-Random
 
-    $test = $null
-    # Try this one
-    $pick = $candidates | Get-Random
-
-    $test = $lastPicks | ? Genre -like "$($pick.Genre)"
-
-    If ($test -eq $null)
-        {
-        $pick = $candidates | ? Genre -like "$($pick.Genre)" | Get-Random
-        $picked = $true
-        }
-
-    $tries++
-    # Timeout
-    If ($tries -gt $($places | measure).Count)
-        {$picked = $true}
+# Sushi Wednesday
+If ($(Get-Date).DayOfWeek -eq "Wednesday") {
+    $pick = $places | ? Venue -like "*Fuji*"
     }
 
-Write-Output "Pick: $($pick.Venue) ($($pick.Genre), $($tries) tries)"
+Write-Output "Pick: $($pick.Venue) ($($pick.Genre)"
 
 # Send to Slack, don't save if it doesn't send
 Try {
