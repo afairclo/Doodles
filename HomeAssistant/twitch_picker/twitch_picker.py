@@ -11,7 +11,7 @@ def twitch_picker(action=None, id=None):
     
     # Twitch OAuth
     requestHeaders = {
-        'Authorization':'Bearer BREARER_TOKEN',
+        'Authorization':'Bearer BEARER_TOKEN',
         'Client-Id':'CLIENT_ID'
         
         }
