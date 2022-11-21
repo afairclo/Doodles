@@ -63,12 +63,20 @@ def twitch_picker(action=None, id=None):
     steam250_under5 = urllib.parse.quote(sensor.steam250_under_5)
     chartGames.append(steam250_under5)
     
+    # Skip trending games not interested in
+    
+    skipGames = [
+        urllib.parse.quote('Mount & Blade II: Bannerlord'),
+        urllib.parse.quote('Vampire Survivors')
+        ]
+    
     for chartGame in chartGames:
-        requestURL = "https://api.twitch.tv/helix/games?name="+chartGame
-        response = task.executor(requests.get, requestURL, headers=requestHeaders)
-        trendingJson = response.json()
-        for trendingGame in trendingJson['data']:
-            gameIDs.append(trendingGame['id'])
+        if chartGame not in skipGames:
+            requestURL = "https://api.twitch.tv/helix/games?name="+chartGame
+            response = task.executor(requests.get, requestURL, headers=requestHeaders)
+            trendingJson = response.json()
+            for trendingGame in trendingJson['data']:
+                gameIDs.append(trendingGame['id'])
     
     skipList = [
         'presscorps',
