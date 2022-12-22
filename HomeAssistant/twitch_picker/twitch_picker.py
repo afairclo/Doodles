@@ -105,8 +105,12 @@ def twitch_picker(action=None, id=None):
             streams = response.json()
             for stream in streams['data']:
                 if stream['user_login'] not in skipList:
-                    if stream['tag_ids'] != None:
-                        if stream['tag_ids'].count("52d7e4cc-633d-46f5-818c-bb59102d9549")==0:
+                    if stream['tags'] != None:
+                        # Filter out VTubers. Sorry, not sorry.
+                        tags_formatted = []
+                        for tag in stream['tags']:
+                            tags_formatted.append(tag.lower())
+                        if tags_formatted.count("vtuber")==0:
                             streamers.append(stream['user_login'])
                     else:
                         streamers.append(stream['user_login'])

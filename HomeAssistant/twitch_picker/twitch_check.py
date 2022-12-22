@@ -14,7 +14,7 @@ def twitch_check(action=None, id=None):
     response = task.executor(requests.get, pickURL, headers=requestHeaders)
     pickJson = response.json()
     
-    if pickJson['data'] == None:
+    if not pickJson['data']:
         service.call("pyscript", "twitch_picker")
         exit()
     
