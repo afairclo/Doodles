@@ -1,20 +1,20 @@
 @service
 def twitch_picker(action=None, id=None):
-    log.info(f"twitch_picker: got action {action} id {id}")
     import json
     import requests
     import random
     import urllib.parse
+    import asyncio
     
     #entity_id = data.get("entity_id")
-    entity_id = "media_player.man_cave_2"
+    entity_id = "media_player.man_cave"
     
     # Twitch OAuth
     requestHeaders = {
-        'Authorization':'Bearer BEARER_TOKEN',
-        'Client-Id':'CLIENT_ID'
+        'Authorization':'Bearer ' + input_text.twitch_oauth_token,
+        'Client-Id':str(input_text.twitch_client_id)
         }
-        
+       
     streamers = []
     pick = None
     
@@ -48,13 +48,13 @@ def twitch_picker(action=None, id=None):
             gameIDs.append('508455') # Valheim
             gameIDs.append('743214338') # Brotato
             gameIDs.append('515621883') # Soulstone Surviors
-            gameIDs.remove('497440') # Hell Let Loose
             gameIDs.remove('493388') # Foxhole
+            gameIDs.remove('847542703') # Train Sim World 3
         
         chartGames = []
         
         # Append Steam Charts' top trending game to game list
-        steamcharts = urllib.parse.quote(sensor.steam250_trending)
+        steamcharts = urllib.parse.quote(sensor.steam_charts_top_trending_game)
         chartGames.append(steamcharts)
         
         # Steam250 Trending
@@ -79,7 +79,9 @@ def twitch_picker(action=None, id=None):
             urllib.parse.quote('Mount & Blade II: Bannerlord'),
             urllib.parse.quote('Portal 2'),
             urllib.parse.quote('Vampire Survivors'),
-            urllib.parse.quote('Warhammer 40,000: Darktide')
+            urllib.parse.quote('Warhammer 40,000: Darktide'),
+            urllib.parse.quote('Gorilla Tag'),
+            urllib.parse.quote('Euro Truck Simulator 2')
             ]
         
         for chartGame in chartGames:
@@ -147,7 +149,7 @@ def twitch_picker(action=None, id=None):
     
     service.call("media_extractor", "play_media", entity_id=entity_id, media_content_id=url, media_content_type="video")
     
+    # Bandaid for tvOS13 not updating status
     asyncio.sleep(5)
+    state.set("media_player.man_cave", "playing")
     
-    state.set("media_player.man_cave_2", "playing")
-   

@@ -1,6 +1,5 @@
 @service
 def twitch_check(action=None, id=None):
-    log.info(f"twitch_deets: got action {action} id {id}")
     import json
     import requests
 
@@ -8,8 +7,11 @@ def twitch_check(action=None, id=None):
 # If the game is no longer current, find a new stream via twitch_picker.py
 # Runs every 5 minutes, 30 minutes after a stream is picked.
 
-    requestHeaders = {'Authorization':'Bearer BEARER_TOKEN','Client-Id':'CLIENT_ID'}
-
+    requestHeaders = {
+        'Authorization':'Bearer ' + input_text.twitch_oauth_token,
+        'Client-Id':str(input_text.twitch_client_id)
+        }
+        
     pickURL = "https://api.twitch.tv/helix/streams?user_login="+input_text.twitch_picker
     response = task.executor(requests.get, pickURL, headers=requestHeaders)
     pickJson = response.json()

@@ -1,11 +1,13 @@
 @service
 def twitch_deets(action=None, id=None):
-    log.info(f"twitch_deets: got action {action} id {id}")
     import json
     import requests
 
-    requestHeaders = {'Authorization':'Bearer BEARER_TOKEN','Client-Id':'CLIENT_ID'}
-
+    requestHeaders = {
+        'Authorization':'Bearer ' + input_text.twitch_oauth_token,
+        'Client-Id':str(input_text.twitch_client_id)
+        }
+        
     pickURL = "https://api.twitch.tv/helix/streams?user_login="+input_text.twitch_picker
     response = task.executor(requests.get, pickURL, headers=requestHeaders)
     pickJson = response.json()
