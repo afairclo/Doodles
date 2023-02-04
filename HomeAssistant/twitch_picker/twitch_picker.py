@@ -18,8 +18,8 @@ def twitch_picker(action=None, id=None):
     streamers = []
     pick = None
     
-    # Add top 3 largest streams. If any of them have over 300k viewers, stream it.
-    requestURL = "https://api.twitch.tv/helix/streams?language=en&first=4"
+    # Add top stream. If they have over 300k viewers, stream it.
+    requestURL = "https://api.twitch.tv/helix/streams?language=en&first=1"
     response = task.executor(requests.get, requestURL, headers=requestHeaders)
     streams = response.json()
     for stream in streams['data']:
@@ -92,6 +92,9 @@ def twitch_picker(action=None, id=None):
                 for trendingGame in trendingJson['data']:
                     gameIDs.append(trendingGame['id'])
         
+        # Pick a game
+        chosenGame = random.choice(gameIDs)
+        
         skipList = [
             'presscorps',
             'bf2tv',
@@ -100,27 +103,25 @@ def twitch_picker(action=None, id=None):
             'xfearxireaper'
             ]
 
-        # Get stream candidates, top 10 English streamers for each game
-        for game in gameIDs:
-            requestURL = "https://api.twitch.tv/helix/streams?game_id="+game+"&language=en&first=10"
-            response = task.executor(requests.get, requestURL, headers=requestHeaders)
-            streams = response.json()
-            for stream in streams['data']:
-                if stream['user_login'] not in skipList:
-                    if stream['tags'] != None:
-                        # Filter out VTubers. Sorry, not sorry.
-                        tags_formatted = []
-                        for tag in stream['tags']:
-                            tags_formatted.append(tag.lower())
-                        if tags_formatted.count("vtuber")==0:
-                            streamers.append(stream['user_login'])
-                    else:
+        # Get stream candidates, top 10 English streamers for chosen game
+        requestURL = "https://api.twitch.tv/helix/streams?game_id="+chosenGame+"&language=en&first=10"
+        response = task.executor(requests.get, requestURL, headers=requestHeaders)
+        streams = response.json()
+        for stream in streams['data']:
+            if stream['user_login'] not in skipList:
+                if stream['tags'] != None:
+                    # Filter out VTubers. Sorry, not sorry.
+                    tags_formatted = []
+                    for tag in stream['tags']:
+                        tags_formatted.append(tag.lower())
+                    if tags_formatted.count("vtuber")==0:
                         streamers.append(stream['user_login'])
+                else:
+                    streamers.append(stream['user_login'])
                         
         # print(streamers)
         input_number.twitch_picker_results.set_value(len(streamers))
         
-        random.shuffle(streamers)
         pick = random.choice(streamers)
     
     # Get stream info
