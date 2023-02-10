@@ -18,7 +18,7 @@ def twitch_picker(action=None, id=None):
     streamers = []
     pick = None
     
-    # Add top stream. If they have over 300k viewers, stream it.
+    # Get top stream. If they have over 300k viewers, stream it.
     requestURL = "https://api.twitch.tv/helix/streams?language=en&first=1"
     response = task.executor(requests.get, requestURL, headers=requestHeaders)
     streams = response.json()
@@ -26,7 +26,7 @@ def twitch_picker(action=None, id=None):
         if stream['viewer_count'] >= 300000:
             pick = stream['user_login']
         else:
-            streamers.append(stream['user_login'])
+            topStream = stream['user_login']
     
     # Pick Routine
     
@@ -41,6 +41,7 @@ def twitch_picker(action=None, id=None):
             '22038', # Natural Selection 2
             '8882', # Pinball
             '512971', # Chivalry II
+            '1095275650', # Hogwarts Legacy
             '847542703' # Train Sim World 3
             ]
         
@@ -92,35 +93,45 @@ def twitch_picker(action=None, id=None):
                 for trendingGame in trendingJson['data']:
                     gameIDs.append(trendingGame['id'])
         
-        # Pick a game
-        chosenGame = random.choice(gameIDs)
-        
-        skipList = [
-            'presscorps',
-            'bf2tv',
-            'saltybet',
-            'rlgym',
-            'xfearxireaper'
-            ]
+        # Pick loop
+        input_number.twitch_picker_loops.set_value(0)
+        loops = 0
+        while len(streamers) == 0:
+            loops += 1
+            input_number.twitch_picker_loops.set_value(loops)
+            # Pick a game
+            chosenGame = random.choice(gameIDs)
+            
+            skipList = [
+                'presscorps',
+                'bf2tv',
+                'saltybet',
+                'rlgym',
+                'xfearxireaper'
+                ]
 
-        # Get stream candidates, top 10 English streamers for chosen game
-        requestURL = "https://api.twitch.tv/helix/streams?game_id="+chosenGame+"&language=en&first=10"
-        response = task.executor(requests.get, requestURL, headers=requestHeaders)
-        streams = response.json()
-        for stream in streams['data']:
-            if stream['user_login'] not in skipList:
-                if stream['tags'] != None:
-                    # Filter out VTubers. Sorry, not sorry.
-                    tags_formatted = []
-                    for tag in stream['tags']:
-                        tags_formatted.append(tag.lower())
-                    if tags_formatted.count("vtuber")==0:
+            # Get stream candidates, top 10 English streamers for chosen game
+            requestURL = "https://api.twitch.tv/helix/streams?game_id="+chosenGame+"&language=en&first=10"
+            response = task.executor(requests.get, requestURL, headers=requestHeaders)
+            streams = response.json()
+            for stream in streams['data']:
+                if stream['user_login'] not in skipList:
+                    if stream['tags'] != None:
+                        # Filter out VTubers. Sorry, not sorry.
+                        tags_formatted = []
+                        for tag in stream['tags']:
+                            tags_formatted.append(tag.lower())
+                        if tags_formatted.count("vtuber")==0:
+                            streamers.append(stream['user_login'])
+                    else:
                         streamers.append(stream['user_login'])
-                else:
-                    streamers.append(stream['user_login'])
                         
         # print(streamers)
         input_number.twitch_picker_results.set_value(len(streamers))
+        
+        # Add top streamer if the stream isn't rare.
+        if len(streamers) > 5:
+            streamers.append(topStream)
         
         pick = random.choice(streamers)
     
