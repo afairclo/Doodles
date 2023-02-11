@@ -18,17 +18,17 @@ def twitch_picker(action=None, id=None):
     streamers = []
     pick = None
     
-    # Get top stream. If they have over 300k viewers, stream it.
+    # Get top stream. If they have over 200k viewers, stream it.
     requestURL = "https://api.twitch.tv/helix/streams?language=en&first=1"
     response = task.executor(requests.get, requestURL, headers=requestHeaders)
     streams = response.json()
     for stream in streams['data']:
-        if stream['viewer_count'] >= 300000:
+        if stream['viewer_count'] >= 200000:
             pick = stream['user_login']
         else:
             topStream = stream['user_login']
     
-    # Pick Routine
+    # Build list of game IDs
     
     if pick == None:
     
@@ -36,19 +36,21 @@ def twitch_picker(action=None, id=None):
             '493388', # Foxhole
             '15467', # Battlefield 2
             '16348', # Battlefield 2142
+            '22851', # Battlefield: Bad Company 2
             '920937099', # Darts
-            '7193', # Microsoft Flight Simulator
             '22038', # Natural Selection 2
             '8882', # Pinball
             '512971', # Chivalry II
-            '1095275650', # Hogwarts Legacy
-            '847542703' # Train Sim World 3
+            '2009321156', # Dark and Darker
+            '509672', # Travel & Outdoors
+            '491931' # Escape from Tarkov
             ]
         
         if person.brendon == "home":
             gameIDs.append('508455') # Valheim
             gameIDs.append('743214338') # Brotato
             gameIDs.append('515621883') # Soulstone Surviors
+            gameIDs.append('7193') # Microsoft Flight Simulator
             gameIDs.remove('493388') # Foxhole
             gameIDs.remove('847542703') # Train Sim World 3
         
@@ -60,6 +62,7 @@ def twitch_picker(action=None, id=None):
         chartGames.append(sensor.steam250_week_top_30)
         chartGames.append(sensor.steam250_on_sale)
         chartGames.append(sensor.steam250_under_5)
+        chartGames.append(sensor.sullygnome_trending)
         
         # Skip trending games not interested in
         skipGames = [
@@ -71,6 +74,9 @@ def twitch_picker(action=None, id=None):
             'Euro Truck Simulator 2'
             ]
         
+        # Remove duplicates to reduce calls
+        chartGames = list(set(chartGames))
+        
         for chartGame in chartGames:
             if chartGame not in skipGames:
                 requestURL = "https://api.twitch.tv/helix/games?name="+urllib.parse.quote(chartGame)
@@ -78,6 +84,13 @@ def twitch_picker(action=None, id=None):
                 trendingJson = response.json()
                 for trendingGame in trendingJson['data']:
                     gameIDs.append(trendingGame['id'])
+        
+        # Remove duplicates to reduce favoritism
+        gameIDs = list(set(gameIDs))
+        
+        # No repeats.
+        if input_text.twitch_picker_gameID in gameIDs:
+            gameIDs.remove(input_text.twitch_picker_gameID)
         
         # Pick loop
         input_number.twitch_picker_loops.set_value(0)
@@ -89,15 +102,13 @@ def twitch_picker(action=None, id=None):
             chosenGame = random.choice(gameIDs)
             
             skipList = [
+                input_text.twitch_picker,
                 'presscorps',
                 'bf2tv',
                 'saltybet',
                 'rlgym',
                 'xfearxireaper'
                 ]
-            
-            # No repeats.
-            skipList.append(input_text.twitch_picker.lower())
 
             # Get stream candidates, top 10 English streamers for chosen game
             requestURL = "https://api.twitch.tv/helix/streams?game_id="+chosenGame+"&language=en&first=10"
@@ -133,6 +144,7 @@ def twitch_picker(action=None, id=None):
     for pick_info in pickJson['data']:
         input_text.twitch_picker.set_value(pick_info['user_name'])
         input_text.twitch_picker_game.set_value(pick_info['game_name'])
+        input_text.twitch_picker_gameID.set_value(pick_info['game_id'])
         input_text.twitch_picker_title.set_value(pick_info['title']+" 🔴 "+str(pick_info['viewer_count']))
         input_text.twitch_picker_chat.set_value("https://www.giambaj.it/twitch/jchat/v2/?channel="+pick_info['user_name']+"&hide_commands=true&size=1&font=2")
         input_text.twitch_picker_chat_popout.set_value("https://www.twitch.tv/popout/"+pick_info['user_name']+"/chat?popout=")
