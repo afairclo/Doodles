@@ -54,40 +54,26 @@ def twitch_picker(action=None, id=None):
         
         chartGames = []
         
-        # Append Steam Charts' top trending game to game list
-        steamcharts = urllib.parse.quote(sensor.steam_charts_top_trending_game)
-        chartGames.append(steamcharts)
-        
-        # Steam250 Trending
-        steam250_trending = urllib.parse.quote(sensor.steam250_trending)
-        chartGames.append(steam250_trending)
-        
-        # Steam250 Top Week
-        steam250_topweek = urllib.parse.quote(sensor.steam250_week_top_30)
-        chartGames.append(steam250_topweek)
-        
-        # Steam250 On Sale
-        steam250_onsale = urllib.parse.quote(sensor.steam250_on_sale)
-        chartGames.append(steam250_onsale)
-        
-        # Steam 250 Under 5
-        steam250_under5 = urllib.parse.quote(sensor.steam250_under_5)
-        chartGames.append(steam250_under5)
+        # Append trending games
+        chartGames.append(sensor.steam_charts_top_trending_game)
+        chartGames.append(sensor.steam250_trending)
+        chartGames.append(sensor.steam250_week_top_30)
+        chartGames.append(sensor.steam250_on_sale)
+        chartGames.append(sensor.steam250_under_5)
         
         # Skip trending games not interested in
-        
         skipGames = [
-            urllib.parse.quote('Mount & Blade II: Bannerlord'),
-            urllib.parse.quote('Portal 2'),
-            urllib.parse.quote('Vampire Survivors'),
-            urllib.parse.quote('Warhammer 40,000: Darktide'),
-            urllib.parse.quote('Gorilla Tag'),
-            urllib.parse.quote('Euro Truck Simulator 2')
+            'Mount & Blade II: Bannerlord',
+            'Portal 2',
+            'Vampire Survivors',
+            'Warhammer 40,000: Darktide',
+            'Gorilla Tag',
+            'Euro Truck Simulator 2'
             ]
         
         for chartGame in chartGames:
             if chartGame not in skipGames:
-                requestURL = "https://api.twitch.tv/helix/games?name="+chartGame
+                requestURL = "https://api.twitch.tv/helix/games?name="+urllib.parse.quote(chartGame)
                 response = task.executor(requests.get, requestURL, headers=requestHeaders)
                 trendingJson = response.json()
                 for trendingGame in trendingJson['data']:
@@ -109,6 +95,9 @@ def twitch_picker(action=None, id=None):
                 'rlgym',
                 'xfearxireaper'
                 ]
+            
+            # No repeats.
+            skipList.append(input_text.twitch_picker.lower())
 
             # Get stream candidates, top 10 English streamers for chosen game
             requestURL = "https://api.twitch.tv/helix/streams?game_id="+chosenGame+"&language=en&first=10"
