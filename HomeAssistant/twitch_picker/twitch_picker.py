@@ -27,7 +27,26 @@ def twitch_picker(action=None, id=None):
             pick = stream['user_login']
         else:
             topStream = stream['user_login']
+            
+    # Get followed channels, if any are online, pick one at random and stream it. 100 max at this time.
     
+    followedOnline = []
+    onlineCheckURL = "https://api.twitch.tv/helix/streams?type=live&first=100"
+    
+    requestURL = "https://api.twitch.tv/helix/users/follows?from_id="+input_text.twitch_userid+"&first=100"
+    response = task.executor(requests.get, requestURL, headers=requestHeaders)
+    followedChannels = response.json()
+    for channel in followedChannels['data']:
+        onlineCheckURL = onlineCheckURL+"&user_login="+channel['to_login']
+    response = task.executor(requests.get, onlineCheckURL, headers=requestHeaders)
+    followedOnlineChannels = response.json()
+    for channel in followedOnlineChannels['data']:
+        followedOnline.append(channel['user_login'])
+    if input_text.twitch_picker.lower() in followedOnline:
+        followedOnline.remove(input_text.twitch_picker.lower())
+    if len(followedOnline) > 0:
+        pick = random.choice(followedOnline)
+        
     # Build list of game IDs
     
     if pick == None:
@@ -37,12 +56,12 @@ def twitch_picker(action=None, id=None):
             '15467', # Battlefield 2
             '16348', # Battlefield 2142
             '22851', # Battlefield: Bad Company 2
-            '920937099', # Darts
+            '1331855755', # Darts
             '22038', # Natural Selection 2
             '8882', # Pinball
             '512971', # Chivalry II
-            '2009321156', # Dark and Darker
             '509672', # Travel & Outdoors
+            '494839', # Deep Rock Galactic
             '491931' # Escape from Tarkov
             ]
         
@@ -52,17 +71,16 @@ def twitch_picker(action=None, id=None):
             gameIDs.append('515621883') # Soulstone Surviors
             gameIDs.append('7193') # Microsoft Flight Simulator
             gameIDs.remove('493388') # Foxhole
-            gameIDs.remove('847542703') # Train Sim World 3
-        
-        chartGames = []
         
         # Append trending games
-        chartGames.append(sensor.steam_charts_top_trending_game)
-        chartGames.append(sensor.steam250_trending)
-        chartGames.append(sensor.steam250_week_top_30)
-        chartGames.append(sensor.steam250_on_sale)
-        chartGames.append(sensor.steam250_under_5)
-        chartGames.append(sensor.sullygnome_trending)
+        chartGames = [
+            sensor.steam_charts_top_trending_game,
+            sensor.steam250_trending,
+            sensor.steam250_week_top_30,
+            sensor.steam250_on_sale,
+            sensor.steam250_under_5,
+            sensor.sullygnome_trending
+            ]
         
         # Skip trending games not interested in
         skipGames = [
@@ -71,7 +89,9 @@ def twitch_picker(action=None, id=None):
             'Vampire Survivors',
             'Warhammer 40,000: Darktide',
             'Gorilla Tag',
-            'Euro Truck Simulator 2'
+            'Euro Truck Simulator 2',
+            'League of Legends',
+            'Just Chatting'
             ]
         
         # Remove duplicates to reduce calls
@@ -107,7 +127,8 @@ def twitch_picker(action=None, id=None):
                 'bf2tv',
                 'saltybet',
                 'rlgym',
-                'xfearxireaper'
+                'xfearxireaper',
+                'virtualjapan'
                 ]
 
             # Get stream candidates, top 10 English streamers for chosen game
