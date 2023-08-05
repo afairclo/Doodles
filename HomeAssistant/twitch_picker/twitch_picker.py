@@ -1,13 +1,17 @@
 @service
-def twitch_picker(action=None, id=None):
+def twitch_picker(target=None):
     import json
     import requests
     import random
     import urllib.parse
     import asyncio
     
-    #entity_id = data.get("entity_id")
-    entity_id = "media_player.man_cave"
+    state.set("automation.man_cave_idle","on")
+    if target == None:
+        target = "media_player.man_cave"
+        
+    # Stop current media
+    service.call("media_player", "media_stop", entity_id=target)
     
     # Twitch OAuth
     requestHeaders = {
@@ -56,20 +60,18 @@ def twitch_picker(action=None, id=None):
             '15467', # Battlefield 2
             '16348', # Battlefield 2142
             '22851', # Battlefield: Bad Company 2
+            '496916', # Battle Bit Remastered
             '1331855755', # Darts
             '22038', # Natural Selection 2
-            '8882', # Pinball
-            '512971', # Chivalry II
-            '509672', # Travel & Outdoors
+            '19333', # Fat Princess
             '494839', # Deep Rock Galactic
-            '491931' # Escape from Tarkov
+            '26175' # Planetside 2
             ]
         
         if person.brendon == "home":
-            gameIDs.append('508455') # Valheim
-            gameIDs.append('743214338') # Brotato
-            gameIDs.append('515621883') # Soulstone Surviors
-            gameIDs.append('7193') # Microsoft Flight Simulator
+            gameIDs.append('1712057841') # Wall World
+            gameIDs.append('515024') # Diablo IV
+            gameIDs.append('518014') # Gran Turismo 7
             gameIDs.remove('493388') # Foxhole
         
         # Append trending games
@@ -78,9 +80,15 @@ def twitch_picker(action=None, id=None):
             sensor.steam250_trending,
             sensor.steam250_week_top_30,
             sensor.steam250_on_sale,
-            sensor.steam250_under_5,
-            sensor.sullygnome_trending
+            sensor.steam250_under_5
             ]
+            
+        # Append top 5 games on Twitch
+        requestURL = "https://api.twitch.tv/helix/games/top?first=5"
+        response = task.executor(requests.get, requestURL, headers=requestHeaders)
+        top5Json = response.json()
+        for game in top5Json['data']:
+            chartGames.append(game['name'])
         
         # Skip trending games not interested in
         skipGames = [
@@ -91,7 +99,17 @@ def twitch_picker(action=None, id=None):
             'Gorilla Tag',
             'Euro Truck Simulator 2',
             'League of Legends',
-            'Just Chatting'
+            'Dota 2',
+            'Just Chatting',
+            'Apex Legends',
+            'VALORANT',
+            'Call of Duty®: Modern Warfare®',
+            'Call of Duty: Modern Warfare II',
+            'Sports',
+            'Special Events',
+            'Grand Theft Auto V',
+            'Rust',
+            'Minecraft'
             ]
         
         # Remove duplicates to reduce calls
@@ -128,7 +146,9 @@ def twitch_picker(action=None, id=None):
                 'saltybet',
                 'rlgym',
                 'xfearxireaper',
-                'virtualjapan'
+                'virtualjapan',
+                'tomixbf2',
+                'PS2CPC'
                 ]
 
             # Get stream candidates, top 10 English streamers for chosen game
@@ -181,9 +201,4 @@ def twitch_picker(action=None, id=None):
     
     url = "https://www.twitch.tv/"+pick
     
-    service.call("media_extractor", "play_media", entity_id=entity_id, media_content_id=url, media_content_type="video")
-    
-    # Bandaid for tvOS13 not updating status
-    asyncio.sleep(5)
-    state.set("media_player.man_cave", "playing")
-    
+    service.call("media_extractor", "play_media", entity_id=target, media_content_id=url, media_content_type="video")
