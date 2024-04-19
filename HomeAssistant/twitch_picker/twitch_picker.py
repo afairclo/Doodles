@@ -38,7 +38,7 @@ def twitch_picker(target=None, pick=None):
             
     # Get followed channels, if any are online, pick one at random and stream it. 100 max at this time.
     
-    # Deprecated
+    # Deprecated 
     
     #followedOnline = []
     #onlineCheckURL = "https://api.twitch.tv/helix/streams?type=live&first=100"
@@ -67,16 +67,7 @@ def twitch_picker(target=None, pick=None):
             '22038', # Natural Selection 2
             '19333', # Fat Princess
             '494839', # Deep Rock Galactic
-            '766571430', # Helldivers 2
-            '503932', # Last Epoch
-            '1952699919' # Deep Rock Galactic: Survivor
             ]
-        
-        if person.brendon == "home":
-            gameIDs.append('1712057841') # Wall World
-            gameIDs.append('515024') # Diablo IV
-            gameIDs.append('518014') # Gran Turismo 7
-            gameIDs.remove('493388') # Foxhole
         
         # Append trending games
         chartGames = [
@@ -86,6 +77,21 @@ def twitch_picker(target=None, pick=None):
             sensor.steam250_on_sale,
             sensor.steam250_under_5
             ]
+            
+        # Append Steam friends games
+        # Use steamID64 value
+        
+        steamUsers = [
+            '0000000000000', # demo1
+            '1111111111111' # demo2
+            ]
+        
+        for user in steamUsers:
+            requestURL = "http://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v0001/?key="+input_text.steamapi+"&format=json&steamid="+user
+            response = task.executor(requests.get, requestURL, headers=requestHeaders)
+            steamJson = response.json()
+            for game in steamJson['response']['games']:
+                chartGames.append(game['name'])
             
         # Append top 5 games on Twitch
         requestURL = "https://api.twitch.tv/helix/games/top?first=5"
