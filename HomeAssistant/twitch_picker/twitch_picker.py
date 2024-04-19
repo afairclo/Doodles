@@ -1,5 +1,5 @@
 @service
-def twitch_picker(target=None):
+def twitch_picker(target=None, pick=None):
     import json
     import requests
     import random
@@ -9,47 +9,53 @@ def twitch_picker(target=None):
     state.set("automation.man_cave_idle","on")
     if target == None:
         target = "media_player.man_cave"
-        
-    # Stop current media
-    service.call("media_player", "media_stop", entity_id=target)
     
     # Twitch OAuth
     requestHeaders = {
         'Authorization':'Bearer ' + input_text.twitch_oauth_token,
         'Client-Id':str(input_text.twitch_client_id)
         }
-       
-    streamers = []
-    pick = None
     
-    # Get top stream. If they have over 200k viewers, stream it.
-    requestURL = "https://api.twitch.tv/helix/streams?language=en&first=1"
-    response = task.executor(requests.get, requestURL, headers=requestHeaders)
-    streams = response.json()
-    for stream in streams['data']:
-        if stream['viewer_count'] >= 200000:
-            pick = stream['user_login']
-        else:
-            topStream = stream['user_login']
+    # Recovery in event of stream failure
+    # last_streamer = "https://api.twitch.tv/helix/streams?user_login="+input_text.twitch_picker
+    # response = task.executor(requests.get, last_streamer, headers=requestHeaders)
+    # streams = response.json()
+    # if len(streams['data']) != 0:
+    #    pick = input_text.twitch_picker
+        
+    if pick == None:
+    
+        streamers = []
+        # Get top stream. If they have over 225k viewers, stream it.
+        requestURL = "https://api.twitch.tv/helix/streams?language=en&first=1"
+        response = task.executor(requests.get, requestURL, headers=requestHeaders)
+        streams = response.json()
+        for stream in streams['data']:
+            if stream['viewer_count'] >= 225000:
+                pick = stream['user_login']
+            else:
+                topStream = stream['user_login']
             
     # Get followed channels, if any are online, pick one at random and stream it. 100 max at this time.
     
-    followedOnline = []
-    onlineCheckURL = "https://api.twitch.tv/helix/streams?type=live&first=100"
+    # Deprecated
     
-    requestURL = "https://api.twitch.tv/helix/users/follows?from_id="+input_text.twitch_userid+"&first=100"
-    response = task.executor(requests.get, requestURL, headers=requestHeaders)
-    followedChannels = response.json()
-    for channel in followedChannels['data']:
-        onlineCheckURL = onlineCheckURL+"&user_login="+channel['to_login']
-    response = task.executor(requests.get, onlineCheckURL, headers=requestHeaders)
-    followedOnlineChannels = response.json()
-    for channel in followedOnlineChannels['data']:
-        followedOnline.append(channel['user_login'])
-    if input_text.twitch_picker.lower() in followedOnline:
-        followedOnline.remove(input_text.twitch_picker.lower())
-    if len(followedOnline) > 0:
-        pick = random.choice(followedOnline)
+    #followedOnline = []
+    #onlineCheckURL = "https://api.twitch.tv/helix/streams?type=live&first=100"
+    
+    #requestURL = "https://api.twitch.tv/helix/users/follows?from_id="+input_text.twitch_userid+"&first=100"
+    #response = task.executor(requests.get, requestURL, headers=requestHeaders)
+    #followedChannels = response.json()
+    #for channel in followedChannels['data']:
+    #    onlineCheckURL = onlineCheckURL+"&user_login="+channel['to_login']
+    #response = task.executor(requests.get, onlineCheckURL, headers=requestHeaders)
+    #followedOnlineChannels = response.json()
+    #for channel in followedOnlineChannels['data']:
+    #    followedOnline.append(channel['user_login'])
+    #if input_text.twitch_picker.lower() in followedOnline:
+    #    followedOnline.remove(input_text.twitch_picker.lower())
+    #if len(followedOnline) > 0:
+    #    pick = random.choice(followedOnline)
         
     # Build list of game IDs
     
@@ -57,15 +63,13 @@ def twitch_picker(target=None):
     
         gameIDs = [
             '493388', # Foxhole
-            '15467', # Battlefield 2
-            '16348', # Battlefield 2142
-            '22851', # Battlefield: Bad Company 2
-            '496916', # Battle Bit Remastered
             '1331855755', # Darts
             '22038', # Natural Selection 2
             '19333', # Fat Princess
             '494839', # Deep Rock Galactic
-            '26175' # Planetside 2
+            '766571430', # Helldivers 2
+            '503932', # Last Epoch
+            '1952699919' # Deep Rock Galactic: Survivor
             ]
         
         if person.brendon == "home":
@@ -105,11 +109,18 @@ def twitch_picker(target=None):
             'VALORANT',
             'Call of Duty®: Modern Warfare®',
             'Call of Duty: Modern Warfare II',
+            'Call of Duty: Modern Warfare III',
+            'Call of Duty: Warzone',
             'Sports',
             'Special Events',
             'Grand Theft Auto V',
             'Rust',
-            'Minecraft'
+            'Minecraft',
+            'Fortnite',
+            'Lost Ark',
+            'World of Warcraft',
+            'Disney Dreamlight Valley',
+            'Nothing'
             ]
         
         # Remove duplicates to reduce calls
@@ -200,5 +211,14 @@ def twitch_picker(target=None):
         input_text.twitch_picker_avatar.set_value(pick_info['profile_image_url'])
     
     url = "https://www.twitch.tv/"+pick
-    
+            
+    # Stop current media
+    service.call("media_player", "media_stop", entity_id=target)
+    asyncio.sleep(2)
+    # Send stream to target
     service.call("media_extractor", "play_media", entity_id=target, media_content_id=url, media_content_type="video")
+    
+    # Bandaid for tvOS not updating status
+    asyncio.sleep(5)
+    state.set("media_player.man_cave", "playing")
+    
