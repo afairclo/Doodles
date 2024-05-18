@@ -143,12 +143,7 @@ def twitch_picker(target=None, pick=None):
         # Use steamID64 value
         
         steamUsers = [
-            '76561197961521763', # FapFlop
-            '76561197990038627', # Bread86
-            '76561198037335714', # K8ers
-            '76561198140759821', # Yen
-            '76561197970285821', # n0m3rcy
-            '76561198112594074' # Drizzle
+            '00000000' # SteamID Here
             ]
         
         for user in steamUsers:
