@@ -22,19 +22,52 @@ def twitch_picker(target=None, pick=None):
     # streams = response.json()
     # if len(streams['data']) != 0:
     #    pick = input_text.twitch_picker
+    
+    skipList = [
+                input_text.twitch_picker,
+                'presscorps',
+                'bf2tv',
+                'saltybet',
+                'rlgym',
+                'xfearxireaper',
+                'virtualjapan',
+                'tomixbf2',
+                'PS2CPC',
+                'jynxzi',
+                'kaicenat'
+                ]
+                
+    nostalgiaGames = [
+                'Foxhole',
+                'HELLDIVERS™ 2',
+                'PlanetSide 2',
+                'Natural Selection 2',
+                'Battlefield 2', # Like sequels much?
+                'Battlefield 2142',
+                'Deep Rock Galactic',
+                'Supreme Commander: Forged Alliance'
+                ]
+                
+    nostalgiaPick = random.choice(nostalgiaGames)
         
     if pick == None:
     
         streamers = []
         # Get top stream. If they have over 225k viewers, stream it.
+        topStream = ""
         requestURL = "https://api.twitch.tv/helix/streams?language=en&first=1"
         response = task.executor(requests.get, requestURL, headers=requestHeaders)
         streams = response.json()
         for stream in streams['data']:
-            if stream['viewer_count'] >= 225000:
-                pick = stream['user_login']
+            if stream['user_login'] not in skipList:
+                if stream['viewer_count'] >= 200000:
+                    pick = stream['user_login']
+                    specialStream = True
+                else:
+                    topStream = stream['user_login']
+                    specialStream = False
             else:
-                topStream = stream['user_login']
+                specialStream = False
             
     # Get followed channels, if any are online, pick one at random and stream it. 100 max at this time.
     
@@ -60,74 +93,85 @@ def twitch_picker(target=None, pick=None):
     # Build list of game IDs
     
     if pick == None:
-    
+        
+        # Games that must be in the running
+        
         gameIDs = [
-            '493388', # Foxhole
             '1331855755', # Darts
-            '22038', # Natural Selection 2
-            '19333', # Fat Princess
-            '494839', # Deep Rock Galactic
             ]
         
         # Append trending games
         chartGames = [
             sensor.steam_charts_top_trending_game,
-            sensor.steam250_trending,
             sensor.steam250_week_top_30,
-            sensor.steam250_on_sale,
-            sensor.steam250_under_5
+            ]
+
+        # Skip trending games not interested in
+        skipGames = [
+            'Apex Legends',
+            'Call of Duty: Warzone',
+            'Counter-Strike',
+            'Dead by Daylight',
+            'Dota 2',
+            'EA Sports FC 24',
+            'Fortnite',
+            'Grand Theft Auto V',
+            "I'm Only Sleeping",
+            'IRL',
+            'Just Chatting',
+            'League of Legends',
+            'Minecraft',
+            'Music',
+            'Nothing',
+            'Overwatch 2',
+            'Portal 2',
+            'Rust',
+            'Satisfactory',
+            'Slots',
+            'Sports',
+            'Street Fighter 6',
+            'Teamfight Tactics',
+            "Tom Clancy's Rainbow Six Siege",
+            'Trackmania',
+            'VALORANT',
+            'Vampire Survivors',
+            'Virtual Casino',
+            'World of Warcraft'
             ]
             
         # Append Steam friends games
         # Use steamID64 value
         
         steamUsers = [
-            '0000000000000', # demo1
-            '1111111111111' # demo2
+            '76561197961521763', # FapFlop
+            '76561197990038627', # Bread86
+            '76561198037335714', # K8ers
+            '76561198140759821', # Yen
+            '76561197970285821', # n0m3rcy
+            '76561198112594074' # Drizzle
             ]
         
         for user in steamUsers:
             requestURL = "http://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v0001/?key="+input_text.steamapi+"&format=json&steamid="+user
             response = task.executor(requests.get, requestURL, headers=requestHeaders)
             steamJson = response.json()
-            for game in steamJson['response']['games']:
-                chartGames.append(game['name'])
+            if 'games' in steamJson['response']:
+                for game in steamJson['response']['games']:
+                    if game['playtime_2weeks'] > 120 and game['name'] not in skipGames:
+                        chartGames.append(game['name'])
             
-        # Append top 5 games on Twitch
-        requestURL = "https://api.twitch.tv/helix/games/top?first=5"
+        # Append top 5 games on Twitch that aren't in skipGames
+        topTwitch = []
+        requestURL = "https://api.twitch.tv/helix/games/top?first=20"
         response = task.executor(requests.get, requestURL, headers=requestHeaders)
         top5Json = response.json()
         for game in top5Json['data']:
-            chartGames.append(game['name'])
+            if game['name'] not in skipGames:
+                topTwitch.append(game['name'])
+        topTwitch = topTwitch[:5]
+        chartGames.extend(topTwitch)
         
-        # Skip trending games not interested in
-        skipGames = [
-            'Mount & Blade II: Bannerlord',
-            'Portal 2',
-            'Vampire Survivors',
-            'Warhammer 40,000: Darktide',
-            'Gorilla Tag',
-            'Euro Truck Simulator 2',
-            'League of Legends',
-            'Dota 2',
-            'Just Chatting',
-            'Apex Legends',
-            'VALORANT',
-            'Call of Duty®: Modern Warfare®',
-            'Call of Duty: Modern Warfare II',
-            'Call of Duty: Modern Warfare III',
-            'Call of Duty: Warzone',
-            'Sports',
-            'Special Events',
-            'Grand Theft Auto V',
-            'Rust',
-            'Minecraft',
-            'Fortnite',
-            'Lost Ark',
-            'World of Warcraft',
-            'Disney Dreamlight Valley',
-            'Nothing'
-            ]
+        chartGames.append(nostalgiaPick)
         
         # Remove duplicates to reduce calls
         chartGames = list(set(chartGames))
@@ -155,43 +199,50 @@ def twitch_picker(target=None, pick=None):
             input_number.twitch_picker_loops.set_value(loops)
             # Pick a game
             chosenGame = random.choice(gameIDs)
-            
-            skipList = [
-                input_text.twitch_picker,
-                'presscorps',
-                'bf2tv',
-                'saltybet',
-                'rlgym',
-                'xfearxireaper',
-                'virtualjapan',
-                'tomixbf2',
-                'PS2CPC'
-                ]
+            # Debug
+            #chosenGame = "493388"
 
-            # Get stream candidates, top 10 English streamers for chosen game
-            requestURL = "https://api.twitch.tv/helix/streams?game_id="+chosenGame+"&language=en&first=10"
+            # Get stream candidates, top 10 streamers for chosen game
+            requestURL = "https://api.twitch.tv/helix/streams?game_id="+chosenGame+"&first=10"
             response = task.executor(requests.get, requestURL, headers=requestHeaders)
             streams = response.json()
+            # Sum viewer count across all streams
+            totalViewers = 0
             for stream in streams['data']:
-                if stream['user_login'] not in skipList:
-                    if stream['tags'] != None:
-                        # Filter out VTubers. Sorry, not sorry.
-                        tags_formatted = []
-                        for tag in stream['tags']:
-                            tags_formatted.append(tag.lower())
-                        if tags_formatted.count("vtuber")==0:
-                            streamers.append(stream['user_login'])
-                    else:
+                totalViewers += stream['viewer_count']
+            for stream in streams['data']:
+                # If game is popping of from single English stream, pick it
+                # If it's a single non-English stream, skip game
+                if (stream['viewer_count'] / totalViewers)>0.5:
+                    if stream['language'] == "en":
+                        specialStream = True
                         streamers.append(stream['user_login'])
+                        pick = stream['user_login']
+                else:
+                    if stream['user_login'] not in skipList and stream['language'] == "en":
+                        if stream['tags'] != None:
+                            # Filter out VTubers. Sorry, not sorry.
+                            tags_formatted = []
+                            for tag in stream['tags']:
+                                tags_formatted.append(tag.lower())
+                            if tags_formatted.count("vtuber")==0:
+                                streamers.append(stream['user_login'])
+                        else:
+                            streamers.append(stream['user_login'])
                         
         # print(streamers)
         input_number.twitch_picker_results.set_value(len(streamers))
         
-        # Add top streamer if the stream isn't rare.
-        if len(streamers) > 5:
-            streamers.append(topStream)
+        if pick == None:
         
-        pick = random.choice(streamers)
+            # Add top streamer if the stream isn't rare.
+            if len(streamers) > 5 and topStream:
+                streamers.append(topStream)
+        
+            pick = random.choice(streamers)
+            
+            if pick == topStream:
+                specialStream = True
     
     # Get stream info
     
@@ -203,9 +254,13 @@ def twitch_picker(target=None, pick=None):
         input_text.twitch_picker.set_value(pick_info['user_name'])
         input_text.twitch_picker_game.set_value(pick_info['game_name'])
         input_text.twitch_picker_gameID.set_value(pick_info['game_id'])
-        input_text.twitch_picker_title.set_value(pick_info['title']+" 🔴 "+str(pick_info['viewer_count']))
+        if specialStream == True:
+            input_text.twitch_picker_title.set_value(pick_info['title']+" 🔴 "+str(pick_info['viewer_count'])+" 💫")
+        else:
+            input_text.twitch_picker_title.set_value(pick_info['title']+" 🔴 "+str(pick_info['viewer_count']))
         input_text.twitch_picker_chat.set_value("https://www.giambaj.it/twitch/jchat/v2/?channel="+pick_info['user_name']+"&hide_commands=true&size=1&font=2")
         input_text.twitch_picker_chat_popout.set_value("https://www.twitch.tv/popout/"+pick_info['user_name']+"/chat?popout=")
+        
    
    # Get user avatar
    
